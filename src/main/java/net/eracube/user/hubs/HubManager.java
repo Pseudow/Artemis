@@ -19,7 +19,7 @@ public class HubManager {
         this.hubs = new HashSet<>();
         this.timeouts = new HashMap<>();
 
-        artemisUser.getPacketManager().addReceiver("net.eracube-hub", (packet) -> {
+        artemisUser.getPacketManager().addReceiver("artemis-client@hub", (packet) -> {
             if(packet instanceof PacketHubConnect) {
                 this.registerHub((PacketHubConnect) packet);
             } else if(packet instanceof PacketHubDisconnect) {
