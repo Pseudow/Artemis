@@ -1,6 +1,7 @@
 package net.eracube.client.games;
 
 import net.eracube.Artemis;
+import net.eracube.commons.games.GameState;
 import net.eracube.commons.minecraft.MinecraftTemplate;
 import net.eracube.commons.users.User;
 
@@ -35,8 +36,9 @@ public class GameManager {
 
         List<User> servers = new ArrayList<>(getCurrentServers());
         List<User> toRemove = new ArrayList<>();
-        servers.stream().filter(server -> !server.isAvailable()).forEach(toRemove::remove);
-        servers.stream().filter(server -> server.getMaxPlayers() == server.getPlayerCount()).forEach(toRemove::remove);
+        servers.stream().filter(server -> !server.isAvailable()).forEach(toRemove::add);
+        servers.stream().filter(server -> server.getMaxPlayers() == server.getPlayerCount()).forEach(toRemove::add);
+        servers.stream().filter(server -> server.getGameState().equals(GameState.STOPPING) || server.getGameState().equals(GameState.LOADING)).forEach(toRemove::add);
         toRemove.forEach(servers::remove);
 
         servers.sort((client1, client2) -> {

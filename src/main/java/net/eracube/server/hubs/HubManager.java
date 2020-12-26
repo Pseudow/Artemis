@@ -1,5 +1,6 @@
 package net.eracube.server.hubs;
 
+import net.eracube.commons.games.GameState;
 import net.eracube.commons.users.User;
 import net.eracube.server.ArtemisServer;
 
@@ -37,7 +38,8 @@ public class HubManager {
 
         List<User> hubs = new ArrayList<>(getCurrentHubs());
         List<User> toRemove = new ArrayList<>();
-        hubs.stream().filter(hub -> !hub.isAvailable()).forEach(toRemove::remove);
+        hubs.stream().filter(hub -> !hub.isAvailable()).forEach(toRemove::add);
+        hubs.stream().filter(hub -> hub.getGameState().equals(GameState.STOPPING) || hub.getGameState().equals(GameState.LOADING)).forEach(toRemove::add);
         toRemove.forEach(hubs::remove);
 
         hubs.sort((client1, client2) -> {
