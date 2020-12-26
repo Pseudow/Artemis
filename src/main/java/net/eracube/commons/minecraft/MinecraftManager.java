@@ -27,6 +27,8 @@ public class MinecraftManager {
         this.template = template;
         this.artemis = artemis;
 
+        this.artemis.createVolatile("start-server");
+
         this.artemis.getScheduledExecutorService().scheduleAtFixedRate(() -> {
             List<String> toRemove = new ArrayList<>();
             this.minecraftServersLoading.forEach((key, value) -> {
@@ -44,64 +46,66 @@ public class MinecraftManager {
     }
 
     public void startMinecraftServer(String gameType, boolean host) throws IOException {
-        //GET THE FOLDER CONTAINING ALL SERVERS
-        File gameFolder = new File(serverFolder.getPath() + "\\" + gameType + "s");
+        synchronized (this.artemis.getVolatile("start-server")) {
+            //GET THE FOLDER CONTAINING ALL SERVERS
+            File gameFolder = new File(serverFolder.getPath() + "\\" + gameType + "s");
 
-        if (!host) {
+            if (!host) {
 
-            //THIS NUMBER MAY HELP US TO FIND MORE QUICKLY A SERVER NUMBER
-            AtomicInteger number = new AtomicInteger(0);
+                //THIS NUMBER MAY HELP US TO FIND MORE QUICKLY A SERVER NUMBER
+                AtomicInteger number = new AtomicInteger(0);
 
-            //CHECK IF A AVAILABLE SERVER IS ALREADY INSIDE THE FOLDER
-            for (File file : Objects.requireNonNull(gameFolder.listFiles())) {
-                number.addAndGet(1);
-                if (this.artemis.getServerContainer().getArtemisObjectByServerName(file.getName()) == null) {
-                    this.artemis.getResourcesManager().downloadMap(file, gameType);
-                    //THIS SERVER FOLDER ISN'T USED, WE CAN USE IT SO
-                    File runFile = new File(file.getPath() + "\\run.bat");
-                    if (runFile.exists()) {
+                //CHECK IF A AVAILABLE SERVER IS ALREADY INSIDE THE FOLDER
+                for (File file : Objects.requireNonNull(gameFolder.listFiles())) {
+                    number.addAndGet(1);
+                    if (this.artemis.getServerContainer().getArtemisObjectByServerName(file.getName()) == null) {
+                        this.artemis.getResourcesManager().downloadMap(file, gameType);
+                        //THIS SERVER FOLDER ISN'T USED, WE CAN USE IT SO
+                        File runFile = new File(file.getPath() + "\\run.bat");
+                        if (runFile.exists()) {
 
-                        //CHANGE PORT IN SERVER.PROPERTIES
-                        File serverProperties = new File(file.getPath() + "\\server.properties");
-                        Properties properties = new Properties();
-                        properties.load(new FileInputStream(serverProperties));
-                        properties.replace("server-port", getUnusedPort());
+                            //CHANGE PORT IN SERVER.PROPERTIES
+                            File serverProperties = new File(file.getPath() + "\\server.properties");
+                            Properties properties = new Properties();
+                            properties.load(new FileInputStream(serverProperties));
+                            properties.replace("server-port", getUnusedPort());
 
-                        //EXECUTE THE RUN.BAT
-                        Runtime.getRuntime().exec("cmd /c run.bat", null, new File(file.getPath()));
-                        this.minecraftServersLoading.put(file.getName(), new AtomicInteger(0));
-                        return;
+                            //EXECUTE THE RUN.BAT
+                            Runtime.getRuntime().exec("cmd /c run.bat", null, new File(file.getPath()));
+                            this.minecraftServersLoading.put(file.getName(), new AtomicInteger(0));
+                            return;
+                        }
                     }
                 }
-            }
 
-            System.out.print("CREATING A SERVER FROM A TEMPLATE...");
-            getAServerNumberAvailable(gameFolder, number);
-            System.out.print("FOUND A NUMBER FOR OUR SERVER: " + number.get());
+                System.out.print("CREATING A SERVER FROM A TEMPLATE...");
+                getAServerNumberAvailable(gameFolder, number);
+                System.out.print("FOUND A NUMBER FOR OUR SERVER: " + number.get());
 
-            File newGameFolder = new File(this.serverFolder.getPath() + "\\" + gameType + number.get());
+                File newGameFolder = new File(this.serverFolder.getPath() + "\\" + gameType + number.get());
 
-            if (!newGameFolder.mkdir())
-                throw new IOException("Error, the file you want to convert to a new server is already busy!");
+                if (!newGameFolder.mkdir())
+                    throw new IOException("Error, the file you want to convert to a new server is already busy!");
 
-            this.artemis.getResourcesManager().downloadMap(newGameFolder, gameType);
-            this.artemis.getResourcesManager().downloadBasicFiles(newGameFolder);
+                this.artemis.getResourcesManager().downloadMap(newGameFolder, gameType);
+                this.artemis.getResourcesManager().downloadBasicFiles(newGameFolder);
 
-            try {
-                File serverProperties = this.artemis.getResourcesManager().downloadServerProperties(newGameFolder);
-                Properties properties = new Properties();
-                properties.load(new FileInputStream(serverProperties));
-                properties.replace("server-port", getUnusedPort());
-                System.out.println("WE HAVE SET THE NEW PORT IN THE SERVER.PROPERTIES: " + properties.get("server-port"));
-            } catch (FileNotFoundException exception) {
-                throw new FileNotFoundException("ERROR THE SERVER.PROPERTIES OF THE SERVER CURRENTLY LOADING ISN'T PRESENT!");
-            }
+                try {
+                    File serverProperties = this.artemis.getResourcesManager().downloadServerProperties(newGameFolder);
+                    Properties properties = new Properties();
+                    properties.load(new FileInputStream(serverProperties));
+                    properties.replace("server-port", getUnusedPort());
+                    System.out.println("WE HAVE SET THE NEW PORT IN THE SERVER.PROPERTIES: " + properties.get("server-port"));
+                } catch (FileNotFoundException exception) {
+                    throw new FileNotFoundException("ERROR THE SERVER.PROPERTIES OF THE SERVER CURRENTLY LOADING ISN'T PRESENT!");
+                }
 
-            File runFile = new File(serverFolder.getPath() + "\\run.bat");
-            if (runFile.exists()) {
-                System.out.println("RUNNING THE SERVER...");
-                Runtime.getRuntime().exec("cmd /c run.bat", null, new File(serverFolder.getPath()));
-                this.minecraftServersLoading.put(serverFolder.getName(), new AtomicInteger(0));
+                File runFile = new File(serverFolder.getPath() + "\\run.bat");
+                if (runFile.exists()) {
+                    System.out.println("RUNNING THE SERVER...");
+                    Runtime.getRuntime().exec("cmd /c run.bat", null, new File(serverFolder.getPath()));
+                    this.minecraftServersLoading.put(serverFolder.getName(), new AtomicInteger(0));
+                }
             }
         }
     }

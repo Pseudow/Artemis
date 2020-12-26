@@ -26,11 +26,13 @@ public class GameManager {
     }
 
     public User getBestServerWithMaxPlayers(String playerName) {
-        while (getPlayerCountByTemplate() == 0) {
-            try {
-                TimeUnit.SECONDS.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        synchronized (this.artemis.getVolatile("start-server")) {
+            if (this.getPlayerCountByTemplate() == 0) {
+                try {
+                    this.artemis.getMinecraftManager().startMinecraftServer(this.minecraftTemplate.getTemplateId(), false);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
 

@@ -7,12 +7,15 @@ import net.eracube.commons.packets.PacketManager;
 import net.eracube.commons.pubsub.ConnectionManager;
 import net.eracube.commons.resources.ResourcesManager;
 
-import java.util.Random;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class Artemis {
+    private final HashMap<String, Volatile> volatiles;
+
     private final ScheduledExecutorService scheduledExecutorService;
 
     private final ConnectionManager connectionManager;
@@ -28,9 +31,10 @@ public abstract class Artemis {
         this.connectionManager = new ConnectionManager(this, configuration.getUser(),
                 configuration.getPassword(), configuration.getHost(), configuration.getPort());
         this.gson = new Gson();
-        this.uuid = UUID.randomUUID().toString() + "-" + new Random().nextInt(9999);
+        this.uuid = UUID.randomUUID().toString() + "-" + ThreadLocalRandom.current().nextInt(9999);
         this.running = true;
         this.scheduledExecutorService = Executors.newScheduledThreadPool(32);
+        this.volatiles = new HashMap<>();
     }
 
     public abstract void disable();
@@ -63,5 +67,25 @@ public abstract class Artemis {
 
     public boolean isRunning() {
         return this.running;
+    }
+
+    public void createVolatile(String keyId) {
+        this.volatiles.put(keyId, new Volatile());
+    }
+
+    public Volatile getVolatile(String keyId) {
+        return this.volatiles.get(keyId);
+    }
+
+    private class Volatile {
+        private final Object volatileObject;
+
+        public Volatile() {
+            this.volatileObject = UUID.randomUUID().toString() + ";" + ThreadLocalRandom.current().nextInt(9999);
+        }
+
+        public Object getVolatileObject() {
+            return this.volatileObject;
+        }
     }
 }
