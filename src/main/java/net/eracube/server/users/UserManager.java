@@ -24,7 +24,7 @@ public class UserManager implements ServerContainer {
         this.users = new HashSet<>();
         this.artemisServer = artemisServer;
         this.timeouts = new HashMap<>();
-        artemisServer.getPacketManager().addReceiver("artemis-server@hub", (packet) -> {
+        artemisServer.getPacketManager().addReceiver("artemis-client@hub", (packet) -> {
             if(packet instanceof PacketUserConnect) {
                 this.registerUser((PacketUserConnect) packet);
             } else if(packet instanceof PacketUserHeartBeat) {
