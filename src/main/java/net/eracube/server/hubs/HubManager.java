@@ -4,6 +4,7 @@ import net.eracube.commons.games.GameState;
 import net.eracube.commons.users.User;
 import net.eracube.server.ArtemisServer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -28,9 +29,19 @@ public class HubManager {
     }
 
     public User getHubWithMinPlayers() {
-        while (getCurrentHubs().size() == 0) {
+        synchronized (this.artemisServer.getVolatile("start-server")) {
+            if (this.getCurrentHubs().size() == 0) {
+                try {
+                    this.artemisServer.getMinecraftManager().startMinecraftServer("hub", false);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        while(this.getCurrentHubs().size() == 0) {
             try {
-                TimeUnit.SECONDS.sleep(1);
+                TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

@@ -36,6 +36,14 @@ public class GameManager {
             }
         }
 
+        while(this.getPlayerCountByTemplate() == 0) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         List<User> servers = new ArrayList<>(getCurrentServers());
         List<User> toRemove = new ArrayList<>();
         servers.stream().filter(server -> !server.isAvailable()).forEach(toRemove::add);
